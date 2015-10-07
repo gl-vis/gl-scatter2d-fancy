@@ -15,14 +15,14 @@ varying vec4 fragColor;
 void main() {
   vec4 fragId = id + pickOffset;
 
-  fragId.y += floor(fragId.x) / 255.0;
-  fragId.x -= floor(fragId.x);
+  fragId.z += floor(fragId.w) / 255.0;
+  fragId.w -= floor(fragId.w);
 
-  fragId.z += floor(fragId.y) / 255.0;
-  fragId.y -= floor(fragId.y);
-
-  fragId.w += floor(fragId.z) / 255.0;
+  fragId.y += floor(fragId.z) / 255.0;
   fragId.z -= floor(fragId.z);
+
+  fragId.x += floor(fragId.y) / 255.0;
+  fragId.y -= floor(fragId.y);
 
   fragColor = fragId;
 
