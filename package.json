@@ -1,0 +1,23 @@
+{
+  "name": "gl-scatter2d-fancy",
+  "version": "1.0.0",
+  "description": "Fancy and slow scatter plots",
+  "main": "scatter-fancy.js",
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gl-vis/gl-scatter2d-fancy.git"
+  },
+  "keywords": [
+    "scatter",
+    "plot"
+  ],
+  "author": "Mikola Lysenko",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gl-vis/gl-scatter2d-fancy/issues"
+  },
+  "homepage": "https://github.com/gl-vis/gl-scatter2d-fancy#readme"
+}
