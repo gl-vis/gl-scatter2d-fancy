@@ -15,16 +15,16 @@ varying vec4 fragColor;
 void main() {
   vec4 fragId = id + pickOffset;
 
-  fragId.z += floor(fragId.w) / 255.0;
-  fragId.w -= floor(fragId.w);
+  fragId.y += floor(fragId.x / 256.0);
+  fragId.x -= floor(fragId.x / 256.0) * 256.0;
 
-  fragId.y += floor(fragId.z) / 255.0;
-  fragId.z -= floor(fragId.z);
+  fragId.z += floor(fragId.y / 256.0);
+  fragId.y -= floor(fragId.y / 256.0) * 256.0;
 
-  fragId.x += floor(fragId.y) / 255.0;
-  fragId.y -= floor(fragId.y);
+  fragId.w += floor(fragId.z / 256.0);
+  fragId.z -= floor(fragId.z / 256.0) * 256.0;
 
-  fragColor = fragId;
+  fragColor = fragId / 255.0;
 
   gl_Position = computePosition(
     position,

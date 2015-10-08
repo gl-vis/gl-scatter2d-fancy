@@ -192,7 +192,7 @@ var proto = GLScatterFancy.prototype
     this.pickOffset = offset
 
     for(var i=0; i<4; ++i) {
-      PICK_OFFSET[i] = ((offset>>(i*8)) & 0xff) / 255.0
+      PICK_OFFSET[i] = ((offset>>(i*8)) & 0xff)
     }
 
     calcScales.call(this)
@@ -210,7 +210,7 @@ var proto = GLScatterFancy.prototype
     shader.attributes.offset.pointer()
 
     this.idBuffer.bind()
-    shader.attributes.id.pointer(gl.UNSIGNED_BYTE, true)
+    shader.attributes.id.pointer(gl.UNSIGNED_BYTE, false)
 
     gl.drawArrays(gl.TRIANGLES, 0, numVertices)
 
@@ -227,8 +227,8 @@ proto.pick = function(x, y, value) {
   var pointId = value - pickOffset
   var points   = this.points
   return {
-    object:  this,
-    pointId: pointId,
+    object:     this,
+    pointId:    pointId,
     dataCoord: [ points[2*pointId], points[2*pointId+1] ]
   }
 }
