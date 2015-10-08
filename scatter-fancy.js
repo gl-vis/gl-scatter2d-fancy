@@ -353,7 +353,7 @@ function createFancyScatter2D(plot, options) {
   var gl = plot.gl
 
   var shader      = createShader(gl, shaders.vertex,     shaders.fragment)
-  var pickShader  = createShader(gl, shaders.pickVertex, shaders.fragment)
+  var pickShader  = createShader(gl, shaders.pickVertex, shaders.pickFragment)
 
   var positionBuffer  = createBuffer(gl)
   var offsetBuffer    = createBuffer(gl)
