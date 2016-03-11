@@ -159,6 +159,10 @@ var proto = GLScatterFancy.prototype
     var shader        = this.shader
     var numVertices   = this.numVertices
 
+    if(!numVertices) {
+      return
+    }
+
     var gl          = plot.gl
 
     calcScales.call(this)
@@ -190,6 +194,10 @@ var proto = GLScatterFancy.prototype
     var gl          = plot.gl
 
     this.pickOffset = offset
+
+    if(!numVertices) {
+      return offset
+    }
 
     for(var i=0; i<4; ++i) {
       PICK_OFFSET[i] = ((offset>>(i*8)) & 0xff)
