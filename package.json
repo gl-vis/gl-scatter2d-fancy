@@ -27,7 +27,7 @@
   "homepage": "https://github.com/gl-vis/gl-scatter2d-fancy#readme",
   "dependencies": {
     "gl-buffer": "^2.1.2",
-    "gl-shader": "^4.0.5",
+    "gl-shader": "^4.2.1",
     "glslify": "^2.3.1",
     "text-cache": "^4.0.0",
     "typedarray-pool": "^1.1.0",
