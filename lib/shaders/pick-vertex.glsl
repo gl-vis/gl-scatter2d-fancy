@@ -1,11 +1,10 @@
-precision mediump float;
+precision highp float;
 
-attribute vec2 position;
+attribute vec2 positionHi, positionLo;
 attribute vec2 offset;
 attribute vec4 id;
 
-uniform mat3 viewTransform;
-uniform vec2 pixelScale;
+uniform vec2 scaleHi, scaleLo, translateHi, translateLo, pixelScale;
 uniform vec4 pickOffset;
 
 varying vec4 fragColor;
@@ -27,8 +26,8 @@ void main() {
   fragColor = fragId / 255.0;
 
   gl_Position = computePosition(
-    position,
-    offset,
-    viewTransform,
-    pixelScale);
+    positionHi, positionLo,
+    scaleHi, scaleLo,
+    translateHi, translateLo,
+    pixelScale, offset);
 }
