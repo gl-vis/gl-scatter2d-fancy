@@ -1,9 +1,8 @@
-vec4 computePosition(vec2 position, vec2 offset, mat3 view, vec2 scale) {
-  vec3 xposition = view * vec3(position, 1.0);
-  return vec4(
-    xposition.xy + scale * offset * xposition.z,
-    0,
-    xposition.z);
-}
-
 #pragma glslify: export(computePosition)
+vec4 computePosition(vec2 posHi, vec2 posLo, vec2 scHi, vec2 scLo, vec2 trHi, vec2 trLo, vec2 screenScale, vec2 screenOffset) {
+  return vec4(scHi * posHi + trHi
+            + scLo * posHi + trLo
+            + scHi * posLo
+            + scLo * posLo
+            + screenScale * screenOffset, 0, 1);
+}
