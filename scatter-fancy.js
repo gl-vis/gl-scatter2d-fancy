@@ -140,8 +140,8 @@ var proto = GLScatterFancy.prototype
 
     var scaleX = 2 * boundX / dataX
     var scaleY = 2 * boundY / dataY
-    var translateX = 2 * (bounds[0] - dataBox[0]) / dataX - 1
-    var translateY = 2 * (bounds[1] - dataBox[1]) / dataY - 1
+    var translateX = (bounds[0] - dataBox[0] - 0.5 * dataX) / boundX
+    var translateY = (bounds[1] - dataBox[1] - 0.5 * dataY) / boundY
 
     SCALE_HI[0] = scaleX
     SCALE_LO[0] = scaleX - SCALE_HI[0]
