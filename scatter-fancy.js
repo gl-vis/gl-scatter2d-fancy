@@ -8,6 +8,7 @@ var textCache = require('text-cache')
 var pool = require('typedarray-pool')
 var vectorizeText = require('vectorize-text')
 var shaders = require('./lib/shaders')
+var snapPoints = require('snap-points-2d')
 
 var BOUNDARIES = {}
 
@@ -113,7 +114,15 @@ function GLScatterFancy(
   this.numPoints      = 0
   this.numVertices    = 0
   this.pickOffset     = 0
+
+  //positions data
   this.points         = null
+
+  //lod scales
+  this.scales         = []
+
+  //data vertices offsets
+  this.pointOffset   = []
 }
 
 var proto = GLScatterFancy.prototype
@@ -125,6 +134,8 @@ var proto = GLScatterFancy.prototype
   var TRANSLATE_LO = new Float32Array([0, 0])
 
   var PIXEL_SCALE = [0, 0]
+
+  var pixelSize
 
   function calcScales() {
     var plot       = this.plot
@@ -155,6 +166,8 @@ var proto = GLScatterFancy.prototype
 
     var screenX = viewBox[2] - viewBox[0]
     var screenY = viewBox[3] - viewBox[1]
+
+    pixelSize   = Math.min(dataX / screenX, dataY / screenY)
 
     PIXEL_SCALE[0] = 2 * pixelRatio / screenX
     PIXEL_SCALE[1] = 2 * pixelRatio / screenY
@@ -215,7 +228,24 @@ var proto = GLScatterFancy.prototype
     shader.uniforms.translateHi = TRANSLATE_HI
     shader.uniforms.translateLo = TRANSLATE_LO
 
-    gl.drawArrays(gl.TRIANGLES, 0, numVertices)
+    var scales = this.scales
+
+    for(var scaleNum = scales.length - 1; scaleNum >= 0; scaleNum--) {
+        var lod = scales[scaleNum]
+        if(lod.pixelSize < pixelSize && scaleNum > 1) {
+          continue
+        }
+
+        var intervalStart = lod.offset
+        var intervalEnd   = lod.count + intervalStart
+
+        var startOffset = this.pointOffset[intervalStart]
+        var endOffset = this.pointOffset[intervalEnd] || numVertices
+
+        if (endOffset > startOffset) {
+          gl.drawArrays(gl.TRIANGLES, startOffset, (endOffset - startOffset))
+        }
+    }
 
     if(pick) return offset + this.numPoints
   }
@@ -251,22 +281,31 @@ proto.update = function(options) {
 
   this.points = positions
 
+  //create packed positions here
+  var pointCount         = this.points.length / 2
+  var packedId           = pool.mallocInt32(pointCount)
+  var packedW            = pool.mallocFloat32(2 * pointCount)
+  var packed             = pool.mallocFloat64(2 * pointCount)
+  packed.set(this.points)
+  this.scales = snapPoints(packed, packedId, packedW, this.bounds)
+
   var bounds = this.bounds = [Infinity, Infinity, -Infinity, -Infinity]
   var numVertices = 0
 
-  var glyphMeshes = []
-  var glyphBoundaries = []
+  var glyphMeshes = Array(pointCount)
+  var glyphBoundaries = Array(pointCount)
   var glyph, border
 
-  for(i = 0; i < glyphs.length; ++i) {
-    glyph = textCache('sans-serif', glyphs[i])
-    border = getBoundary(glyphs[i])
-    glyphMeshes.push(glyph)
-    glyphBoundaries.push(border)
+  for(i = 0; i < pointCount; ++i) {
+    var id = packedId[i]
+    glyph = textCache('sans-serif', glyphs[id])
+    border = getBoundary(glyphs[id])
+    glyphMeshes[id] = glyph
+    glyphBoundaries[id] = border
     numVertices += (glyph.data.length + border.coords.length) >> 1
     for(j = 0; j < 2; ++j) {
-      bounds[j]     = Math.min(bounds[j],     positions[2 * i + j])
-      bounds[2 + j] = Math.max(bounds[2 + j], positions[2 * i + j])
+      bounds[j]     = Math.min(bounds[j],     positions[2 * id + j])
+      bounds[2 + j] = Math.max(bounds[2 + j], positions[2 * id + j])
     }
   }
 
@@ -282,6 +321,7 @@ proto.update = function(options) {
   var tx = bounds[0]
   var ty = bounds[1]
 
+  //v_position contains normalized positions to the available range of positions
   var v_position = pool.mallocFloat64(2 * numVertices)
   var v_posHi    = pool.mallocFloat32(2 * numVertices)
   var v_posLo    = pool.mallocFloat32(2 * numVertices)
@@ -290,16 +330,21 @@ proto.update = function(options) {
   var v_ids      = pool.mallocUint32(numVertices)
   var ptr = 0
 
-  for(i = 0; i < glyphs.length; ++i) {
-    glyph = glyphMeshes[i]
-    border = glyphBoundaries[i]
-    var x = sx * (positions[2 * i]     - tx)
-    var y = sy * (positions[2 * i + 1] - ty)
-    var s = sizes[i]
-    var r = colors[4 * i]     * 255
-    var g = colors[4 * i + 1] * 255
-    var b = colors[4 * i + 2] * 255
-    var a = colors[4 * i + 3] * 255
+  this.pointOffset.length = pointCount
+
+  for(i = 0; i < pointCount; ++i) {
+    this.pointOffset[i] = ptr
+
+    var id = packedId[i]
+    glyph = glyphMeshes[id]
+    border = glyphBoundaries[id]
+    var x = sx * (positions[2 * id]     - tx)
+    var y = sy * (positions[2 * id + 1] - ty)
+    var s = sizes[id]
+    var r = colors[4 * id]     * 255
+    var g = colors[4 * id + 1] * 255
+    var b = colors[4 * id + 2] * 255
+    var a = colors[4 * id + 3] * 255
 
     var gx = 0.5 * (border.bounds[0] + border.bounds[2])
     var gy = 0.5 * (border.bounds[1] + border.bounds[3])
@@ -313,16 +358,16 @@ proto.update = function(options) {
       v_color[4 * ptr + 1]    = g
       v_color[4 * ptr + 2]    = b
       v_color[4 * ptr + 3]    = a
-      v_ids[ptr]              = i
+      v_ids[ptr]              = id
 
       ptr += 1
     }
 
-    var w = borderWidths[i]
-    r = borderColors[4 * i]     * 255
-    g = borderColors[4 * i + 1] * 255
-    b = borderColors[4 * i + 2] * 255
-    a = borderColors[4 * i + 3] * 255
+    var w = borderWidths[id]
+    r = borderColors[4 * id]     * 255
+    g = borderColors[4 * id + 1] * 255
+    b = borderColors[4 * id + 2] * 255
+    a = borderColors[4 * id + 3] * 255
 
     for(j = 0; j < border.coords.length; j += 2) {
       v_position[2 * ptr]     = x
@@ -333,13 +378,13 @@ proto.update = function(options) {
       v_color[4 * ptr + 1]    = g
       v_color[4 * ptr + 2]    = b
       v_color[4 * ptr + 3]    = a
-      v_ids[ptr]              = i
+      v_ids[ptr]              = id
 
       ptr += 1
     }
   }
 
-  this.numPoints = glyphs.length
+  this.numPoints = pointCount
   this.numVertices = numVertices
 
   v_posHi.set(v_position)
@@ -358,6 +403,10 @@ proto.update = function(options) {
   pool.free(v_offset)
   pool.free(v_color)
   pool.free(v_ids)
+
+  pool.free(packed)
+  pool.free(packedId)
+  pool.free(packedW)
 }
 
 proto.dispose = function() {
