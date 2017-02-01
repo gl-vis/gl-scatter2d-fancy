@@ -25,6 +25,8 @@ void main() {
 
   fragColor = fragId / 255.0;
 
+  gl_PointSize = 1.;
+
   gl_Position = computePosition(
     positionHi, positionLo,
     scaleHi, scaleLo,
