@@ -222,7 +222,7 @@ var proto = GLScatterFancy.prototype
       shader.attributes.color.pointer(gl.UNSIGNED_BYTE, true)
 
       this.charBuffer.bind()
-      shader.attributes.char.pointer(gl.UNSIGNED_BYTE, true)
+      shader.attributes.char.pointer(gl.UNSIGNED_BYTE, false)
 
       // let ctx = this.charCanvas.getContext('2d');
       // ctx.fillStyle = 'red';
@@ -462,8 +462,8 @@ proto.update = function(options) {
   for (var i = 0; i < pointCount; i++) {
     var char = glyphs[i]
     var charIdx = glyphChars[char]
-    v_chars[2*i + 1] = Math.floor(i / cols)
-    v_chars[2*i] = i % cols
+    v_chars[2*i + 1] = Math.floor(charIdx / cols)
+    v_chars[2*i] = charIdx % cols
   }
 
   //update data
