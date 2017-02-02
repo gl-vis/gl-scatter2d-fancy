@@ -5,8 +5,8 @@ module.exports = createFancyScatter2D
 var createShader = require('gl-shader')
 var createBuffer = require('gl-buffer')
 var textCache = require('text-cache')
-var pool = require('typedarray-pool')
 var vectorizeText = require('vectorize-text')
+var pool = require('typedarray-pool')
 var shaders = require('./lib/shaders')
 var snapPoints = require('snap-points-2d')
 var atlas = require('font-atlas-sdf')
@@ -102,7 +102,7 @@ function GLScatterFancy(
     pickShader,
     positionHiBuffer,
     positionLoBuffer,
-    offsetBuffer,
+    sizeBuffer,
     colorBuffer,
     idBuffer,
     charBuffer) {
@@ -111,7 +111,7 @@ function GLScatterFancy(
   this.pickShader     = pickShader
   this.posHiBuffer    = positionHiBuffer
   this.posLoBuffer    = positionLoBuffer
-  this.offsetBuffer   = offsetBuffer
+  this.sizeBuffer     = sizeBuffer
   this.colorBuffer    = colorBuffer
   this.idBuffer       = idBuffer
   this.charBuffer       = charBuffer
@@ -237,10 +237,14 @@ var proto = GLScatterFancy.prototype
       //TODO: get rid of recreating texture each fucking draw time
       this.charTexture = createTexture(this.plot.gl, this.charCanvas)
       shader.uniforms.chars = this.charTexture.bind(0)
+      // document.body.appendChild(this.charCanvas)
       //TODO: get rid of this resetting each redraw time
       this.charTexture.setPixels(this.charCanvas)
-      document.body.appendChild(this.charCanvas)
       shader.uniforms.charsShape = [this.charCanvas.width, this.charCanvas.height]
+      shader.uniforms.charsStep = this.charStep;
+
+      this.sizeBuffer.bind()
+      shader.attributes.size.pointer()
     }
 
     this.posHiBuffer.bind()
@@ -248,9 +252,6 @@ var proto = GLScatterFancy.prototype
 
     this.posLoBuffer.bind()
     shader.attributes.positionLo.pointer()
-
-    this.offsetBuffer.bind()
-    shader.attributes.offset.pointer()
 
     shader.uniforms.pixelScale  = PIXEL_SCALE
     shader.uniforms.scaleHi     = SCALE_HI
@@ -275,7 +276,7 @@ var proto = GLScatterFancy.prototype
         var startOffset = this.pointOffset[intervalStart]
         var endOffset = this.pointOffset[intervalEnd] || numVertices
 
-        //TODO: we can shave off even more by slicing by left/right limits, see gl-scatter. Points are arranged by x coordinate so just calc bounds
+        //TODO: we can shave off even more by slicing by left/right limits, see gl-scatter2d. Points are arranged by x coordinate so just calc bounds
 
         if (endOffset > startOffset) {
           gl.drawArrays(gl.POINTS, startOffset, (endOffset - startOffset))
@@ -367,7 +368,7 @@ proto.update = function(options) {
   var v_position = pool.mallocFloat64(2 * numVertices)
   var v_posHi    = pool.mallocFloat32(2 * numVertices)
   var v_posLo    = pool.mallocFloat32(2 * numVertices)
-  var v_offset   = pool.mallocFloat32(2 * numVertices)
+  var v_size     = pool.mallocFloat32(numVertices)
   var v_color    = pool.mallocUint8(4 * numVertices)
   var v_ids      = pool.mallocUint32(numVertices)
   var v_chars    = pool.mallocUint8(2 * numVertices)
@@ -379,10 +380,6 @@ proto.update = function(options) {
     this.pointOffset[i] = ptr
 
     var id = packedId[i]
-    glyph = glyphMeshes[id]
-    border = glyphBoundaries[id]
-    // glyphData = glyph.data
-    glyphData = [0, 0]//, 0, 1, 1, 0]
     var x = sx * (positions[2 * id]     - tx)
     var y = sy * (positions[2 * id + 1] - ty)
     var s = sizes[id]
@@ -391,43 +388,22 @@ proto.update = function(options) {
     var b = colors[4 * id + 2] * 255
     var a = colors[4 * id + 3] * 255
 
-    var gx = 0.5 * (border.bounds[0] + border.bounds[2])
-    var gy = 0.5 * (border.bounds[1] + border.bounds[3])
+    v_position[2 * ptr]     = x
+    v_position[2 * ptr + 1] = y
+    v_size[ptr]             = s
+    v_color[4 * ptr]        = r
+    v_color[4 * ptr + 1]    = g
+    v_color[4 * ptr + 2]    = b
+    v_color[4 * ptr + 3]    = a
+    v_ids[ptr]              = id
 
-    for(j = 0; j < glyphData.length; j += 2) {
-      v_position[2 * ptr]     = x
-      v_position[2 * ptr + 1] = y
-      //FIXME: replace offset with size
-      v_offset[2 * ptr]       = 0//-s * (glyphData[j] - gx)
-      v_offset[2 * ptr + 1]   = 0//-s * (glyphData[j + 1] - gy)
-      v_color[4 * ptr]        = r
-      v_color[4 * ptr + 1]    = g
-      v_color[4 * ptr + 2]    = b
-      v_color[4 * ptr + 3]    = a
-      v_ids[ptr]              = id
-
-      ptr += 1
-    }
+    ptr += 1
 
     var w = borderWidths[id]
     r = borderColors[4 * id]     * 255
     g = borderColors[4 * id + 1] * 255
     b = borderColors[4 * id + 2] * 255
     a = borderColors[4 * id + 3] * 255
-
-    // for(j = 0; j < border.coords.length; j += 2) {
-    //   v_position[2 * ptr]     = x
-    //   v_position[2 * ptr + 1] = y
-    //   v_offset[2 * ptr]       = - (s * (border.coords[j] - gx)     + w * border.normals[j])
-    //   v_offset[2 * ptr + 1]   = - (s * (border.coords[j + 1] - gy) + w * border.normals[j + 1])
-    //   v_color[4 * ptr]        = r
-    //   v_color[4 * ptr + 1]    = g
-    //   v_color[4 * ptr + 2]    = b
-    //   v_color[4 * ptr + 3]    = a
-    //   v_ids[ptr]              = id
-
-    //   ptr += 1
-    // }
   }
 
   this.numPoints = pointCount
@@ -449,7 +425,7 @@ proto.update = function(options) {
   //generate font atlas
   //TODO: make step depend on chars number
   var chars = Object.keys(glyphChars)
-  var size = 32
+  var size = 64
   var step = size*2
   var maxW = gl.getParameter(gl.MAX_TEXTURE_SIZE)
   var atlasW = Math.min(maxW, step*chars.length)
@@ -462,6 +438,8 @@ proto.update = function(options) {
     step: [step, step],
     chars: chars
   })
+  this.charStep = step
+  this.charSize = size
 
   //populate char indexes
   var cols = atlasW / step
@@ -475,7 +453,7 @@ proto.update = function(options) {
   //update data
   this.posHiBuffer.update(v_posHi)
   this.posLoBuffer.update(v_posLo)
-  this.offsetBuffer.update(v_offset)
+  this.sizeBuffer.update(v_size)
   this.colorBuffer.update(v_color)
   this.idBuffer.update(v_ids)
   this.charBuffer.update(v_chars)
@@ -483,7 +461,7 @@ proto.update = function(options) {
   pool.free(v_position)
   pool.free(v_posHi)
   pool.free(v_posLo)
-  pool.free(v_offset)
+  pool.free(v_size)
   pool.free(v_color)
   pool.free(v_ids)
   pool.free(v_chars)
@@ -498,7 +476,7 @@ proto.dispose = function() {
   this.pickShader.dispose()
   this.posHiBuffer.dispose()
   this.posLoBuffer.dispose()
-  this.offsetBuffer.dispose()
+  this.sizeBuffer.dispose()
   this.colorBuffer.dispose()
   this.idBuffer.dispose()
   this.charBuffer.dispose()
@@ -513,7 +491,7 @@ function createFancyScatter2D(plot, options) {
 
   var positionHiBuffer = createBuffer(gl)
   var positionLoBuffer = createBuffer(gl)
-  var offsetBuffer     = createBuffer(gl)
+  var sizeBuffer     = createBuffer(gl)
   var colorBuffer      = createBuffer(gl)
   var idBuffer         = createBuffer(gl)
   var charBuffer       = createBuffer(gl)
@@ -524,7 +502,7 @@ function createFancyScatter2D(plot, options) {
     pickShader,
     positionHiBuffer,
     positionLoBuffer,
-    offsetBuffer,
+    sizeBuffer,
     colorBuffer,
     idBuffer,
     charBuffer)

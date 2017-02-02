@@ -1,7 +1,6 @@
 precision highp float;
 
 attribute vec2 positionHi, positionLo;
-attribute vec2 offset;
 attribute vec4 id;
 
 uniform vec2 scaleHi, scaleLo, translateHi, translateLo, pixelScale;
@@ -31,5 +30,5 @@ void main() {
     positionHi, positionLo,
     scaleHi, scaleLo,
     translateHi, translateLo,
-    pixelScale, offset);
+    pixelScale, vec2(0));
 }
