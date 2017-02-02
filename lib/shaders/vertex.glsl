@@ -11,7 +11,7 @@ uniform vec2 pixelScale, charsShape;
 uniform vec4 viewBox;
 
 varying vec4 fragColor;
-varying vec2 charCoord;
+varying vec2 charOffset;
 varying vec2 pointCoord;
 varying float size;
 varying vec2 position;
@@ -26,7 +26,7 @@ void main() {
   gl_PointSize = 32.;
   size = 32.;
 
-  charCoord = char;
+  charOffset = char;
 
   gl_Position = computePosition(
     positionHi, positionLo,

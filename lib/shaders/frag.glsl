@@ -2,19 +2,24 @@ precision highp float;
 
 uniform sampler2D chars;
 uniform vec2 charsShape;
+uniform float gamma;
 
 varying vec4 fragColor;
-varying vec2 charCoord;
+varying vec2 charOffset;
 varying vec2 pointCoord;
 
+const float BUFFER = .64;
+const float GAMMA = .16;
+
 void main() {
-	//FIXME: why pixelScale is double?
-	//FIXME: whis does not include dataBox viewport
-	vec2 coord = (pointCoord - gl_FragCoord.xy + 16.) / 32.;
-	vec2 uvCoord = ((charCoord + coord) * 64.) / charsShape;
-  vec4 color = texture2D(chars, uvCoord);
-  // float alpha = smoothstep(u_buffer - u_gamma, u_buffer + u_gamma, dist);
-  gl_FragColor = vec4(color.rgb, 1.);
+	vec2 pointUV = (pointCoord - gl_FragCoord.xy + 16.) / 32.;
+	vec2 texCoord = ((charOffset + pointUV) * 64.) / charsShape;
+  float dist = texture2D(chars, texCoord).r;
+
+	float alpha = smoothstep(BUFFER - GAMMA, BUFFER + GAMMA, dist);
+	gl_FragColor = vec4(fragColor.rgb, alpha * fragColor.a);
+
+  // gl_FragColor = vec4(vec3(dist), 1.);
 
   // gl_FragColor = vec4(fragColor.rgb * fragColor.a, fragColor.a);
 }

@@ -217,6 +217,12 @@ var proto = GLScatterFancy.prototype
       shader.attributes.id.pointer(gl.UNSIGNED_BYTE, false)
 
     } else {
+      //enable data blending
+      //FIXME: make sure it does not trigger each and every draw call
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.enable(gl.BLEND);
+      gl.disable(gl.DEPTH_TEST);
+
       this.colorBuffer.bind()
       // shader.attributes.color = [0,1,0,1]
       shader.attributes.color.pointer(gl.UNSIGNED_BYTE, true)
