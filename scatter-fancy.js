@@ -5,96 +5,12 @@ module.exports = createFancyScatter2D
 var createShader = require('gl-shader')
 var createBuffer = require('gl-buffer')
 var textCache = require('text-cache')
-var vectorizeText = require('vectorize-text')
 var pool = require('typedarray-pool')
 var shaders = require('./lib/shaders')
 var snapPoints = require('snap-points-2d')
 var atlas = require('font-atlas-sdf')
 var createTexture = require('gl-texture2d')
 
-
-var BOUNDARIES = {}
-
-function getBoundary(glyph) {
-  if(glyph in BOUNDARIES) {
-    return BOUNDARIES[glyph]
-  }
-
-  var polys = vectorizeText(glyph, {
-    polygons: true,
-    font: 'sans-serif',
-    textAlign: 'left',
-    textBaseline: 'alphabetic'
-  })
-
-  var coords  = []
-  var normals = []
-
-  polys.forEach(function(loops) {
-    loops.forEach(function(loop) {
-      for(var i=0; i < loop.length; ++i) {
-        var a = loop[(i + loop.length - 1) % loop.length]
-        var b = loop[i]
-        var c = loop[(i + 1) % loop.length]
-        var d = loop[(i + 2) % loop.length]
-
-        var dx = b[0] - a[0]
-        var dy = b[1] - a[1]
-        var dl = Math.sqrt(dx * dx + dy * dy)
-        dx /= dl
-        dy /= dl
-
-        coords.push(a[0], a[1] + 1.4)
-        normals.push(dy, -dx)
-        coords.push(a[0], a[1] + 1.4)
-        normals.push(-dy, dx)
-        coords.push(b[0], b[1] + 1.4)
-        normals.push(-dy, dx)
-
-        coords.push(b[0], b[1] + 1.4)
-        normals.push(-dy, dx)
-        coords.push(a[0], a[1] + 1.4)
-        normals.push(dy, -dx)
-        coords.push(b[0], b[1] + 1.4)
-        normals.push(dy, -dx)
-
-        var ex = d[0] - c[0]
-        var ey = d[1] - c[1]
-        var el = Math.sqrt(ex * ex + ey * ey)
-        ex /= el
-        ey /= el
-
-        coords.push(b[0], b[1] + 1.4)
-        normals.push(dy, -dx)
-        coords.push(b[0], b[1] + 1.4)
-        normals.push(-dy, dx)
-        coords.push(c[0], c[1] + 1.4)
-        normals.push(-ey, ex)
-
-        coords.push(c[0], c[1] + 1.4)
-        normals.push(-ey, ex)
-        coords.push(b[0], b[1] + 1.4)
-        normals.push(ey, -ex)
-        coords.push(c[0], c[1] + 1.4)
-        normals.push(ey, -ex)
-      }
-    })
-  })
-
-  var bounds = [Infinity, Infinity, -Infinity, -Infinity]
-  for(var i = 0; i < coords.length; i += 2) {
-    for(var j = 0; j < 2; ++j) {
-      bounds[j]     = Math.min(bounds[j],     coords[i + j])
-      bounds[2 + j] = Math.max(bounds[2 + j], coords[i + j])
-    }
-  }
-
-  return BOUNDARIES[glyph] = {
-    coords:  coords,
-    normals: normals,
-    bounds:  bounds
-  }
-}
 
 function GLScatterFancy(
     plot,
@@ -116,8 +32,7 @@ function GLScatterFancy(
   this.idBuffer       = idBuffer
   this.charBuffer       = charBuffer
   this.bounds         = [Infinity, Infinity, -Infinity, -Infinity]
-  this.numPoints      = 0
-  this.numVertices    = 0
+  this.pointCount     = 0
   this.pickOffset     = 0
 
   //positions data
@@ -126,13 +41,9 @@ function GLScatterFancy(
   //lod scales
   this.scales         = []
 
-  //data vertices offsets
-  this.pointOffset   = []
-
   //font atlas texture
   this.charCanvas = document.createElement('canvas')
   this.charTexture = createTexture(this.plot.gl, this.charCanvas)
-  // this.colorsTexture = createTexture(this.plot.gl, [512, 512])
 }
 
 var proto = GLScatterFancy.prototype
@@ -179,7 +90,7 @@ var proto = GLScatterFancy.prototype
 
     pixelSize   = Math.min(dataX / screenX, dataY / screenY)
 
-    //FIXME: why double?
+    //FIXME: why twice?
     PIXEL_SCALE[0] = 2 * pixelRatio / screenX
     PIXEL_SCALE[1] = 2 * pixelRatio / screenY
   }
@@ -190,9 +101,9 @@ var proto = GLScatterFancy.prototype
     var pick = offset !== undefined
     var plot = this.plot
 
-    var numVertices = this.numVertices
+    var pointCount = this.pointCount
 
-    if(!numVertices) {
+    if(!pointCount) {
       return offset
     }
 
@@ -219,27 +130,18 @@ var proto = GLScatterFancy.prototype
     } else {
       //enable data blending
       //FIXME: make sure it does not trigger each and every draw call
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.enable(gl.BLEND);
       gl.disable(gl.DEPTH_TEST);
 
       this.colorBuffer.bind()
-      // shader.attributes.color = [0,1,0,1]
+
       shader.attributes.color.pointer(gl.UNSIGNED_BYTE, true)
 
       this.charBuffer.bind()
       shader.attributes.char.pointer(gl.UNSIGNED_BYTE, false)
 
-      // let ctx = this.charCanvas.getContext('2d');
-      // ctx.fillStyle = 'red';
-      // ctx.fillRect(30,30,4,4);
-
-      //TODO: get rid of recreating texture each fucking draw time
-      this.charTexture = createTexture(this.plot.gl, this.charCanvas)
-      shader.uniforms.chars = this.charTexture.bind(0)
-      // document.body.appendChild(this.charCanvas)
-      //TODO: get rid of this resetting each redraw time
-      this.charTexture.setPixels(this.charCanvas)
+      shader.uniforms.chars = this.charTexture.bind()
       shader.uniforms.charsShape = [this.charCanvas.width, this.charCanvas.height]
       shader.uniforms.charsStep = this.charStep;
 
@@ -273,8 +175,8 @@ var proto = GLScatterFancy.prototype
         var intervalStart = lod.offset
         var intervalEnd   = lod.count + intervalStart
 
-        var startOffset = this.pointOffset[intervalStart]
-        var endOffset = this.pointOffset[intervalEnd] || numVertices
+        var startOffset = intervalStart
+        var endOffset = intervalEnd || pointCount
 
         //TODO: we can shave off even more by slicing by left/right limits, see gl-scatter2d. Points are arranged by x coordinate so just calc bounds
 
@@ -283,7 +185,7 @@ var proto = GLScatterFancy.prototype
         }
     }
 
-    if(pick) return offset + this.numPoints
+    if(pick) return offset + this.pointCount
   }
 })()
 
@@ -291,7 +193,7 @@ proto.draw = proto.drawPick
 
 proto.pick = function(x, y, value) {
   var pickOffset = this.pickOffset
-  var pointCount = this.numPoints
+  var pointCount = this.pointCount
   if(value < pickOffset || value >= pickOffset + pointCount) {
     return null
   }
@@ -326,38 +228,13 @@ proto.update = function(options) {
   packed.set(this.points)
   this.scales = snapPoints(packed, packedId, packedW, this.bounds)
 
+  //FIXME: figure out what these bounds are about or get rid of them
   var bounds = this.bounds = [Infinity, Infinity, -Infinity, -Infinity]
-  var numVertices = 0
-
-  var glyphMeshes = Array(pointCount)
-  var glyphBoundaries = Array(pointCount)
-  var glyph, border, glyphData
 
   bounds[0] = 0
   bounds[1] = 0
   bounds[2] = 1
   bounds[3] = 1
-
-  for(i = 0; i < pointCount; ++i) {
-    var id = packedId[i]
-    glyph = textCache('sans-serif', glyphs[id])
-    border = getBoundary(glyphs[id])
-    glyphMeshes[id] = glyph
-    glyphBoundaries[id] = border
-    // numVertices += (glyph.data.length + border.coords.length) >> 1
-    numVertices += 1
-    // for(j = 0; j < 2; ++j) {
-    //   bounds[j]     = Math.min(bounds[j],     positions[2 * id + j])
-    //   bounds[2 + j] = Math.max(bounds[2 + j], positions[2 * id + j])
-    // }
-  }
-
-  // if(bounds[0] === bounds[2]) {
-  //   bounds[2] += 1
-  // }
-  // if(bounds[3] === bounds[1]) {
-  //   bounds[3] += 1
-  // }
 
   var sx = 1 / (bounds[2] - bounds[0])
   var sy = 1 / (bounds[3] - bounds[1])
@@ -365,20 +242,16 @@ proto.update = function(options) {
   var ty = bounds[1]
 
   //v_position contains normalized positions to the available range of positions
-  var v_position = pool.mallocFloat64(2 * numVertices)
-  var v_posHi    = pool.mallocFloat32(2 * numVertices)
-  var v_posLo    = pool.mallocFloat32(2 * numVertices)
-  var v_size     = pool.mallocFloat32(numVertices)
-  var v_color    = pool.mallocUint8(4 * numVertices)
-  var v_ids      = pool.mallocUint32(numVertices)
-  var v_chars    = pool.mallocUint8(2 * numVertices)
+  var v_position = pool.mallocFloat64(2 * pointCount)
+  var v_posHi    = pool.mallocFloat32(2 * pointCount)
+  var v_posLo    = pool.mallocFloat32(2 * pointCount)
+  var v_size     = pool.mallocFloat32(pointCount)
+  var v_color    = pool.mallocUint8(4 * pointCount)
+  var v_ids      = pool.mallocUint32(pointCount)
+  var v_chars    = pool.mallocUint8(2 * pointCount)
   var ptr = 0
 
-  this.pointOffset.length = pointCount
-
   for(i = 0; i < pointCount; ++i) {
-    this.pointOffset[i] = ptr
-
     var id = packedId[i]
     var x = sx * (positions[2 * id]     - tx)
     var y = sy * (positions[2 * id + 1] - ty)
@@ -388,16 +261,14 @@ proto.update = function(options) {
     var b = colors[4 * id + 2] * 255
     var a = colors[4 * id + 3] * 255
 
-    v_position[2 * ptr]     = x
-    v_position[2 * ptr + 1] = y
-    v_size[ptr]             = s
-    v_color[4 * ptr]        = r
-    v_color[4 * ptr + 1]    = g
-    v_color[4 * ptr + 2]    = b
-    v_color[4 * ptr + 3]    = a
-    v_ids[ptr]              = id
-
-    ptr += 1
+    v_position[2 * i]     = x
+    v_position[2 * i + 1] = y
+    v_size[i]             = s
+    v_color[4 * i]        = r
+    v_color[4 * i + 1]    = g
+    v_color[4 * i + 2]    = b
+    v_color[4 * i + 3]    = a
+    v_ids[i]              = id
 
     var w = borderWidths[id]
     r = borderColors[4 * id]     * 255
@@ -406,9 +277,9 @@ proto.update = function(options) {
     a = borderColors[4 * id + 3] * 255
   }
 
-  this.numPoints = pointCount
-  this.numVertices = numVertices
+  this.pointCount = pointCount
 
+  //collect hi-precition tails
   v_posHi.set(v_position)
   for(i = 0; i < v_position.length; i++)
     v_posLo[i] = v_position[i] - v_posHi[i]
@@ -423,9 +294,9 @@ proto.update = function(options) {
   }
 
   //generate font atlas
-  //TODO: make step depend on chars number
+  //TODO: make size depend on chars number/max size of a point
   var chars = Object.keys(glyphChars)
-  var size = 64
+  var size = 128
   var step = size*2
   var maxW = gl.getParameter(gl.MAX_TEXTURE_SIZE)
   var atlasW = Math.min(maxW, step*chars.length)
@@ -438,13 +309,15 @@ proto.update = function(options) {
     step: [step, step],
     chars: chars
   })
+  // document.body.appendChild(this.charCanvas)
   this.charStep = step
   this.charSize = size
 
   //populate char indexes
   var cols = atlasW / step
   for (var i = 0; i < pointCount; i++) {
-    var char = glyphs[i]
+    var idx = packedId[i]
+    var char = glyphs[idx]
     var charIdx = glyphChars[char]
     v_chars[2*i + 1] = Math.floor(charIdx / cols)
     v_chars[2*i] = charIdx % cols
@@ -458,6 +331,10 @@ proto.update = function(options) {
   this.idBuffer.update(v_ids)
   this.charBuffer.update(v_chars)
 
+  //create char texture
+  this.charTexture.shape = [this.charCanvas.width, this.charCanvas.height]
+  this.charTexture.setPixels(this.charCanvas)
+
   pool.free(v_position)
   pool.free(v_posHi)
   pool.free(v_posLo)
@@ -465,7 +342,6 @@ proto.update = function(options) {
   pool.free(v_color)
   pool.free(v_ids)
   pool.free(v_chars)
-
   pool.free(packed)
   pool.free(packedId)
   pool.free(packedW)
