@@ -299,8 +299,12 @@ proto.update = function(options) {
   var size = 128
   var step = size*2
   var maxW = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+  var maxChars = (maxW / step) * (maxW / step)
   var atlasW = Math.min(maxW, step*chars.length)
-  var atlasH = Math.min(maxW, step*Math.floor(step*chars.length/atlasW))
+  var atlasH = Math.min(maxW, step*Math.ceil(step*chars.length/maxW))
+  if (chars.length > maxChars) {
+    console.warn('gl-scatter2d-fancy: number of characters is more than maximum texture size. Try reducing it.')
+  }
   this.charCanvas = atlas({
     canvas: this.charCanvas,
     family: 'sans-serif',
@@ -309,7 +313,6 @@ proto.update = function(options) {
     step: [step, step],
     chars: chars
   })
-  // document.body.appendChild(this.charCanvas)
   this.charStep = step
   this.charSize = size
 
