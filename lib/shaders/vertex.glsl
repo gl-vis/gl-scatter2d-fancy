@@ -1,5 +1,7 @@
 precision highp float;
 
+#pragma glslify: computePosition = require("./xform.glsl")
+
 attribute vec2 positionHi, positionLo;
 attribute float size, border;
 attribute vec2 char, color;
@@ -18,7 +20,6 @@ varying float pointSize;
 varying vec2 position;
 varying float borderWidth;
 
-#pragma glslify: computePosition = require("./xform.glsl")
 
 void main() {
   charColor = texture2D(palette, vec2(color.x / 255., 0));

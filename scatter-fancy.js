@@ -12,6 +12,7 @@ var atlas = require('font-atlas-sdf')
 var createTexture = require('gl-texture2d')
 var colorId = require('color-id')
 var ndarray = require('ndarray')
+var clamp = require('clamp')
 
 function GLScatterFancy(
     plot,
@@ -134,11 +135,8 @@ var proto = GLScatterFancy.prototype
       shader.attributes.id.pointer(gl.UNSIGNED_BYTE, false)
 
     } else {
-      //enable data blending
-      //FIXME: make sure it does not trigger each and every draw call
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.enable(gl.BLEND);
-      gl.disable(gl.DEPTH_TEST);
 
       this.colorBuffer.bind()
       shader.attributes.color.pointer(gl.UNSIGNED_BYTE, false)
@@ -236,12 +234,7 @@ proto.update = function(options) {
   this.pointCount = pointCount
 
   //FIXME: figure out what these bounds are about or get rid of them
-  var bounds = this.bounds = [Infinity, Infinity, -Infinity, -Infinity]
-
-  bounds[0] = 0
-  bounds[1] = 0
-  bounds[2] = 1
-  bounds[3] = 1
+  var bounds = this.bounds = [0, 0, 1, 1]
 
   var sx = 1 / (bounds[2] - bounds[0])
   var sy = 1 / (bounds[3] - bounds[1])
@@ -295,6 +288,12 @@ proto.update = function(options) {
 
   //generate font atlas
   //TODO: make size depend on chars number/max size of a point
+  var maxSize = 0;
+  for (var i = 0, l = sizes.length; i < l; ++i) {
+    if (sizes[i] > maxSize) maxSize = sizes[i];
+  }
+  this.charStep = clamp(Math.ceil(maxSize*5), 128, 512)
+
   var chars = Object.keys(glyphChars)
   var step = this.charStep
   var size = Math.floor(step / 2)

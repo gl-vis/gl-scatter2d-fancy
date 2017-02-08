@@ -18,7 +18,7 @@ void main() {
 	float dist = texture2D(chars, texCoord).r;
 
 	// border color
-	float dif = 2. * borderWidth / pointSize;
+	float dif = 5. * borderWidth / pointSize;
 	float borderLevel = .75 - dif * .8;
 	float charLevel = .75 + dif * .2;
 	float gamma = .005 * charsStep / pointSize;
@@ -27,7 +27,6 @@ void main() {
 	float mixAmount = smoothstep(charLevel - gamma, charLevel + gamma, dist);
 
 	//mix border color and color
-	gl_FragColor = vec4(mix(charColor.rgb, borderColor.rgb, 1. - mixAmount), alpha * borderColor.a * charColor.a);
-
-	// gl_FragColor = vec4(vec3(1.-dist), 1.);
+	vec4 color = mix(borderColor, charColor, mixAmount);
+	gl_FragColor = vec4(color.rgb, alpha * color.a);
 }
