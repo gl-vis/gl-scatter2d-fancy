@@ -4,7 +4,6 @@ module.exports = createFancyScatter2D
 
 var createShader = require('gl-shader')
 var createBuffer = require('gl-buffer')
-var textCache = require('text-cache')
 var pool = require('typedarray-pool')
 var shaders = require('./lib/shaders')
 var snapPoints = require('snap-points-2d')
@@ -287,7 +286,6 @@ proto.update = function(options) {
   }
 
   //generate font atlas
-  //TODO: make size depend on chars number/max size of a point
   var maxSize = 0;
   for (var i = 0, l = sizes.length; i < l; ++i) {
     if (sizes[i] > maxSize) maxSize = sizes[i];
