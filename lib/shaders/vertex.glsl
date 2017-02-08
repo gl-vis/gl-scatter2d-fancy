@@ -1,9 +1,8 @@
 precision highp float;
 
 attribute vec2 positionHi, positionLo;
-attribute float size;
-attribute vec2 char;
-attribute vec2 color;
+attribute float size, border;
+attribute vec2 char, color;
 
 //this is 64-bit form of scale and translate
 uniform vec2 scaleHi, scaleLo, translateHi, translateLo;
@@ -17,6 +16,7 @@ varying vec2 charOffset;
 varying vec2 pointCoord;
 varying float pointSize;
 varying vec2 position;
+varying float borderWidth;
 
 #pragma glslify: computePosition = require("./xform.glsl")
 
@@ -28,6 +28,7 @@ void main() {
   pointSize = size*2.;
 
   charOffset = char;
+  borderWidth = border;
 
   gl_Position = computePosition(
     positionHi, positionLo,

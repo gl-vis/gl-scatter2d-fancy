@@ -154,7 +154,8 @@ var proto = GLScatterFancy.prototype
       shader.uniforms.palette = this.paletteTexture.bind(1)
 
       this.sizeBuffer.bind()
-      shader.attributes.size.pointer()
+      shader.attributes.size.pointer(gl.UNSIGNED_BYTE, false, 2, 0)
+      shader.attributes.border.pointer(gl.UNSIGNED_BYTE, false, 2, 1)
     }
 
     this.posHiBuffer.bind()
@@ -252,13 +253,13 @@ proto.update = function(options) {
   var ty = bounds[1]
 
   //v_position contains normalized positions to the available range of positions
-  var v_position = pool.mallocFloat64(2 * pointCount)
-  var v_posHi    = pool.mallocFloat32(2 * pointCount)
-  var v_posLo    = pool.mallocFloat32(2 * pointCount)
-  var v_size     = pool.mallocFloat32(pointCount)
-  var v_color    = pool.mallocUint8(2 * pointCount)
-  var v_ids      = pool.mallocUint32(pointCount)
-  var v_chars    = pool.mallocUint8(2 * pointCount)
+  var v_position  = pool.mallocFloat64(2 * pointCount)
+  var v_posHi     = pool.mallocFloat32(2 * pointCount)
+  var v_posLo     = pool.mallocFloat32(2 * pointCount)
+  var v_sizeWidth = pool.mallocUint8(2 * pointCount)
+  var v_color     = pool.mallocUint8(2 * pointCount)
+  var v_ids       = pool.mallocUint32(pointCount)
+  var v_chars     = pool.mallocUint8(2 * pointCount)
   var ptr = 0
 
   //aggregate colors
@@ -326,14 +327,13 @@ proto.update = function(options) {
     var x = sx * (positions[2 * id]     - tx)
     var y = sy * (positions[2 * id + 1] - ty)
     var s = sizes[id]
-
-    v_position[2 * i]     = x
-    v_position[2 * i + 1] = y
-    v_size[i]             = s
-
-    v_ids[i]              = id
-
     var w = borderWidths[id]
+
+    v_position[2 * i]      = x
+    v_position[2 * i + 1]  = y
+    v_sizeWidth[2 * i]     = s
+    v_sizeWidth[2 * i + 1] = w
+    v_ids[i]               = id
 
     //color/bufferColor indexes
     var cId = colorIds[id]
@@ -359,7 +359,7 @@ proto.update = function(options) {
   //fill buffes
   this.posHiBuffer.update(v_posHi)
   this.posLoBuffer.update(v_posLo)
-  this.sizeBuffer.update(v_size)
+  this.sizeBuffer.update(v_sizeWidth)
   this.colorBuffer.update(v_color)
   this.idBuffer.update(v_ids)
   this.charBuffer.update(v_chars)
@@ -372,7 +372,7 @@ proto.update = function(options) {
   pool.free(v_position)
   pool.free(v_posHi)
   pool.free(v_posLo)
-  pool.free(v_size)
+  pool.free(v_sizeWidth)
   pool.free(v_color)
   pool.free(v_ids)
   pool.free(v_chars)
@@ -401,7 +401,7 @@ function createFancyScatter2D(plot, options) {
 
   var positionHiBuffer = createBuffer(gl)
   var positionLoBuffer = createBuffer(gl)
-  var sizeBuffer     = createBuffer(gl)
+  var sizeBuffer       = createBuffer(gl)
   var colorBuffer      = createBuffer(gl)
   var idBuffer         = createBuffer(gl)
   var charBuffer       = createBuffer(gl)
