@@ -355,7 +355,9 @@ proto.update = function(options) {
 
   //update char/color textures
   this.charTexture.shape = [this.charCanvas.width, this.charCanvas.height]
-  this.charTexture.setPixels(this.charCanvas)
+  if (this.charCanvas && this.charCanvas.width) {
+    this.charTexture.setPixels(this.charCanvas)
+  }
   this.paletteTexture.setPixels(ndarray(paletteColors.slice(0, 256*4), [256, 1, 4]))
 
   pool.free(v_position)
