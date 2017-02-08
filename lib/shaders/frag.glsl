@@ -17,7 +17,7 @@ void main() {
 	vec2 texCoord = ((charOffset + pointUV) * charsStep) / charsShape;
 	float dist = texture2D(chars, texCoord).r;
 
-	if (dist == 0.)
+	if (dist < 1e-3)
 		discard;
 
 	// border color

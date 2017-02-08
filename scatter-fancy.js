@@ -134,8 +134,8 @@ var proto = GLScatterFancy.prototype
       shader.attributes.id.pointer(gl.UNSIGNED_BYTE, false)
 
     } else {
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+      gl.enable(gl.BLEND)
 
       this.colorBuffer.bind()
       shader.attributes.color.pointer(gl.UNSIGNED_BYTE, false)
@@ -145,7 +145,7 @@ var proto = GLScatterFancy.prototype
 
       shader.uniforms.chars = this.charTexture.bind(0)
       shader.uniforms.charsShape = [this.charCanvas.width, this.charCanvas.height]
-      shader.uniforms.charsStep = this.charStep;
+      shader.uniforms.charsStep = this.charStep
       shader.uniforms.palette = this.paletteTexture.bind(1)
 
       this.sizeBuffer.bind()
@@ -170,7 +170,7 @@ var proto = GLScatterFancy.prototype
 
     for(var scaleNum = scales.length - 1; scaleNum >= 0; scaleNum--) {
         var lod = scales[scaleNum]
-        if(lod.pixelSize < pixelSize && scaleNum > 1) {
+        if(lod.pixelSize < pixelSize * 6 && scaleNum > 1) {
           continue
         }
 
@@ -277,7 +277,7 @@ proto.update = function(options) {
   }
 
   //aggregate glyphs
-  var glyphChars = {};
+  var glyphChars = {}
   for (var i = 0, l = pointCount, k = 0; i < l; i++) {
     var char = glyphs[i]
     if (glyphChars[char] == null) {
@@ -286,9 +286,9 @@ proto.update = function(options) {
   }
 
   //generate font atlas
-  var maxSize = 0;
+  var maxSize = 0
   for (var i = 0, l = sizes.length; i < l; ++i) {
-    if (sizes[i] > maxSize) maxSize = sizes[i];
+    if (sizes[i] > maxSize) maxSize = sizes[i]
   }
   this.charStep = clamp(Math.ceil(maxSize*5), 128, 512)
 

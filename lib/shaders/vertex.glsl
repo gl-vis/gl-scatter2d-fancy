@@ -25,8 +25,8 @@ void main() {
   charColor = texture2D(palette, vec2(color.x / 255., 0));
   borderColor = texture2D(palette, vec2(color.y / 255., 0));
 
-  gl_PointSize = size*2.;
-  pointSize = size*2.;
+  gl_PointSize = max(size*2., 10.);
+  pointSize = max(size*2., 10.);
 
   charOffset = char;
   borderWidth = border;
