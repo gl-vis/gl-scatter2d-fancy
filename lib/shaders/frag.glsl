@@ -16,7 +16,7 @@ void main() {
   float dist = texture2D(chars, texCoord).r;
 
   float buffer = .725;
-  float gamma = .0275;
+  float gamma = .0275 * 50. / pointSize;
 
   //FIXME: step scales with the point size, make sure it remains absolute
 	float alpha = smoothstep(buffer - gamma, buffer + gamma, dist);
