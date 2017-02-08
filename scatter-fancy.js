@@ -10,7 +10,8 @@ var shaders = require('./lib/shaders')
 var snapPoints = require('snap-points-2d')
 var atlas = require('font-atlas-sdf')
 var createTexture = require('gl-texture2d')
-
+var colorId = require('color-id')
+var ndarray = require('ndarray')
 
 function GLScatterFancy(
     plot,
@@ -25,12 +26,15 @@ function GLScatterFancy(
   this.plot           = plot
   this.shader         = shader
   this.pickShader     = pickShader
+
+  //buffers
   this.posHiBuffer    = positionHiBuffer
   this.posLoBuffer    = positionLoBuffer
   this.sizeBuffer     = sizeBuffer
   this.colorBuffer    = colorBuffer
   this.idBuffer       = idBuffer
   this.charBuffer       = charBuffer
+
   this.bounds         = [Infinity, Infinity, -Infinity, -Infinity]
   this.pointCount     = 0
   this.pickOffset     = 0
@@ -42,8 +46,12 @@ function GLScatterFancy(
   this.scales         = []
 
   //font atlas texture
-  this.charCanvas = document.createElement('canvas')
-  this.charTexture = createTexture(this.plot.gl, this.charCanvas)
+  this.charCanvas     = document.createElement('canvas')
+  this.charTexture    = createTexture(this.plot.gl, this.charCanvas)
+  this.charStep       = 400
+
+  //border/char colors texture
+  this.paletteTexture   = createTexture(this.plot.gl, [256, 1])
 }
 
 var proto = GLScatterFancy.prototype
@@ -135,15 +143,15 @@ var proto = GLScatterFancy.prototype
       gl.disable(gl.DEPTH_TEST);
 
       this.colorBuffer.bind()
-
-      shader.attributes.color.pointer(gl.UNSIGNED_BYTE, true)
+      shader.attributes.color.pointer(gl.UNSIGNED_BYTE, false)
 
       this.charBuffer.bind()
       shader.attributes.char.pointer(gl.UNSIGNED_BYTE, false)
 
-      shader.uniforms.chars = this.charTexture.bind()
+      shader.uniforms.chars = this.charTexture.bind(0)
       shader.uniforms.charsShape = [this.charCanvas.width, this.charCanvas.height]
       shader.uniforms.charsStep = this.charStep;
+      shader.uniforms.palette = this.paletteTexture.bind(1)
 
       this.sizeBuffer.bind()
       shader.attributes.size.pointer()
@@ -228,6 +236,8 @@ proto.update = function(options) {
   packed.set(this.points)
   this.scales = snapPoints(packed, packedId, packedW, this.bounds)
 
+  this.pointCount = pointCount
+
   //FIXME: figure out what these bounds are about or get rid of them
   var bounds = this.bounds = [Infinity, Infinity, -Infinity, -Infinity]
 
@@ -246,43 +256,38 @@ proto.update = function(options) {
   var v_posHi    = pool.mallocFloat32(2 * pointCount)
   var v_posLo    = pool.mallocFloat32(2 * pointCount)
   var v_size     = pool.mallocFloat32(pointCount)
-  var v_color    = pool.mallocUint8(4 * pointCount)
+  var v_color    = pool.mallocUint8(2 * pointCount)
   var v_ids      = pool.mallocUint32(pointCount)
   var v_chars    = pool.mallocUint8(2 * pointCount)
   var ptr = 0
 
-  for(i = 0; i < pointCount; ++i) {
-    var id = packedId[i]
-    var x = sx * (positions[2 * id]     - tx)
-    var y = sy * (positions[2 * id + 1] - ty)
-    var s = sizes[id]
-    var r = colors[4 * id]     * 255
-    var g = colors[4 * id + 1] * 255
-    var b = colors[4 * id + 2] * 255
-    var a = colors[4 * id + 3] * 255
+  //aggregate colors
+  var paletteIds = {}, colorIds = [], paletteColors = [], bColorIds = []
+  for (var i = 0, l = pointCount, k = 0; i < l; ++i) {
+    var channels = [colors[4 * i] * 255, colors[4 * i + 1] * 255, colors[4 * i + 2] * 255, colors[4 * i + 3] * 255]
+    var cId = colorId(channels, false)
+    if (paletteIds[cId] == null) {
+      paletteIds[cId] = k++
+      paletteColors.push(channels[0])
+      paletteColors.push(channels[1])
+      paletteColors.push(channels[2])
+      paletteColors.push(channels[3])
+    }
+    colorIds.push(cId)
 
-    v_position[2 * i]     = x
-    v_position[2 * i + 1] = y
-    v_size[i]             = s
-    v_color[4 * i]        = r
-    v_color[4 * i + 1]    = g
-    v_color[4 * i + 2]    = b
-    v_color[4 * i + 3]    = a
-    v_ids[i]              = id
-
-    var w = borderWidths[id]
-    r = borderColors[4 * id]     * 255
-    g = borderColors[4 * id + 1] * 255
-    b = borderColors[4 * id + 2] * 255
-    a = borderColors[4 * id + 3] * 255
+    if (borderColors && borderColors.length) {
+      channels = [borderColors[4 * i] * 255, borderColors[4 * i + 1] * 255, borderColors[4 * i + 2] * 255, borderColors[4 * i + 3] * 255]
+      cId = colorId(channels, false)
+      if (paletteIds[cId] == null) {
+        paletteIds[cId] = k++
+        paletteColors.push(channels[0])
+        paletteColors.push(channels[1])
+        paletteColors.push(channels[2])
+        paletteColors.push(channels[3])
+      }
+      bColorIds.push(cId)
+    }
   }
-
-  this.pointCount = pointCount
-
-  //collect hi-precition tails
-  v_posHi.set(v_position)
-  for(i = 0; i < v_position.length; i++)
-    v_posLo[i] = v_position[i] - v_posHi[i]
 
   //aggregate glyphs
   var glyphChars = {};
@@ -296,12 +301,13 @@ proto.update = function(options) {
   //generate font atlas
   //TODO: make size depend on chars number/max size of a point
   var chars = Object.keys(glyphChars)
-  var size = 128
-  var step = size*2
+  var step = this.charStep
+  var size = Math.floor(step / 2)
   var maxW = gl.getParameter(gl.MAX_TEXTURE_SIZE)
   var maxChars = (maxW / step) * (maxW / step)
   var atlasW = Math.min(maxW, step*chars.length)
   var atlasH = Math.min(maxW, step*Math.ceil(step*chars.length/maxW))
+  var cols = atlasW / step
   if (chars.length > maxChars) {
     console.warn('gl-scatter2d-fancy: number of characters is more than maximum texture size. Try reducing it.')
   }
@@ -313,20 +319,44 @@ proto.update = function(options) {
     step: [step, step],
     chars: chars
   })
-  this.charStep = step
-  this.charSize = size
 
-  //populate char indexes
-  var cols = atlasW / step
-  for (var i = 0; i < pointCount; i++) {
-    var idx = packedId[i]
-    var char = glyphs[idx]
-    var charIdx = glyphChars[char]
-    v_chars[2*i + 1] = Math.floor(charIdx / cols)
-    v_chars[2*i] = charIdx % cols
+  //collect buffers data
+  for(i = 0; i < pointCount; ++i) {
+    var id = packedId[i]
+    var x = sx * (positions[2 * id]     - tx)
+    var y = sy * (positions[2 * id + 1] - ty)
+    var s = sizes[id]
+
+    v_position[2 * i]     = x
+    v_position[2 * i + 1] = y
+    v_size[i]             = s
+
+    v_ids[i]              = id
+
+    var w = borderWidths[id]
+
+    //color/bufferColor indexes
+    var cId = colorIds[id]
+    var pcId = paletteIds[cId]
+    v_color[2 * i] = pcId
+    var bcId = bColorIds[id]
+    var pbcId = paletteIds[bcId]
+    v_color[2 * i + 1] = pbcId
+
+    //char indexes
+    var char = glyphs[id]
+    var charId = glyphChars[char]
+    v_chars[2 * i + 1] = Math.floor(charId / cols)
+    v_chars[2 * i] = charId % cols
   }
 
-  //update data
+
+  //collect hi-precition tails
+  v_posHi.set(v_position)
+  for(i = 0; i < v_position.length; i++)
+    v_posLo[i] = v_position[i] - v_posHi[i]
+
+  //fill buffes
   this.posHiBuffer.update(v_posHi)
   this.posLoBuffer.update(v_posLo)
   this.sizeBuffer.update(v_size)
@@ -334,9 +364,10 @@ proto.update = function(options) {
   this.idBuffer.update(v_ids)
   this.charBuffer.update(v_chars)
 
-  //create char texture
+  //update char/color textures
   this.charTexture.shape = [this.charCanvas.width, this.charCanvas.height]
   this.charTexture.setPixels(this.charCanvas)
+  this.paletteTexture.setPixels(ndarray(paletteColors.slice(0, 256*4), [256, 1, 4]))
 
   pool.free(v_position)
   pool.free(v_posHi)

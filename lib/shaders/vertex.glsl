@@ -3,14 +3,16 @@ precision highp float;
 attribute vec2 positionHi, positionLo;
 attribute float size;
 attribute vec2 char;
-attribute vec4 color;
+attribute vec2 color;
 
 //this is 64-bit form of scale and translate
 uniform vec2 scaleHi, scaleLo, translateHi, translateLo;
 uniform vec2 pixelScale;
 uniform vec4 viewBox;
+uniform sampler2D palette;
 
-varying vec4 fragColor;
+varying vec4 charColor;
+varying vec4 borderColor;
 varying vec2 charOffset;
 varying vec2 pointCoord;
 varying float pointSize;
@@ -19,7 +21,8 @@ varying vec2 position;
 #pragma glslify: computePosition = require("./xform.glsl")
 
 void main() {
-  fragColor = color;
+  charColor = texture2D(palette, vec2(color.x / 255., 0));
+  borderColor = texture2D(palette, vec2(color.y / 255., 0));
 
   gl_PointSize = size*2.;
   pointSize = size*2.;
