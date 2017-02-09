@@ -172,7 +172,7 @@ var proto = GLScatterFancy.prototype
 
     for(var scaleNum = scales.length - 1; scaleNum >= 0; scaleNum--) {
         var lod = scales[scaleNum]
-        if(lod.pixelSize < pixelSize * 6 && scaleNum > 1) {
+        if(lod.pixelSize < pixelSize * 1.5 && scaleNum > 1) {
           continue
         }
 
