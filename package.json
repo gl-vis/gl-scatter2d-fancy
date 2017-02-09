@@ -30,6 +30,7 @@
   },
   "homepage": "https://github.com/gl-vis/gl-scatter2d-fancy#readme",
   "dependencies": {
+    "binary-search-bounds": "^2.0.3",
     "clamp": "^1.0.1",
     "color-id": "^1.0.0",
     "font-atlas-sdf": "^1.0.0",

@@ -12,6 +12,7 @@ var createTexture = require('gl-texture2d')
 var colorId = require('color-id')
 var ndarray = require('ndarray')
 var clamp = require('clamp')
+var search = require('binary-search-bounds')
 
 function GLScatterFancy(
     plot,
@@ -135,6 +136,7 @@ var proto = GLScatterFancy.prototype
 
     } else {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+      gl.blendColor(1,1,1,1);
       gl.enable(gl.BLEND)
 
       this.colorBuffer.bind()
@@ -149,8 +151,8 @@ var proto = GLScatterFancy.prototype
       shader.uniforms.palette = this.paletteTexture.bind(1)
 
       this.sizeBuffer.bind()
-      shader.attributes.size.pointer(gl.UNSIGNED_BYTE, false, 2, 0)
-      shader.attributes.border.pointer(gl.UNSIGNED_BYTE, false, 2, 1)
+      shader.attributes.size.pointer(gl.FLOAT, false, 8, 0)
+      shader.attributes.border.pointer(gl.FLOAT, false, 8, 4)
     }
 
     this.positionBuffer.bind()
@@ -242,7 +244,7 @@ proto.update = function(options) {
 
   //v_position contains normalized positions to the available range of positions
   var v_position  = pool.mallocFloat32(4 * pointCount)
-  var v_sizeWidth = pool.mallocUint8(2 * pointCount)
+  var v_sizeWidth = pool.mallocFloat32(2 * pointCount)
   var v_color     = pool.mallocUint8(2 * pointCount)
   var v_ids       = pool.mallocUint32(pointCount)
   var v_chars     = pool.mallocUint8(2 * pointCount)
@@ -294,19 +296,19 @@ proto.update = function(options) {
 
   var chars = Object.keys(glyphChars)
   var step = this.charStep
-  var size = Math.floor(step / 2)
+  var charSize = Math.floor(step / 2)
   var maxW = gl.getParameter(gl.MAX_TEXTURE_SIZE)
   var maxChars = (maxW / step) * (maxW / step)
   var atlasW = Math.min(maxW, step*chars.length)
   var atlasH = Math.min(maxW, step*Math.ceil(step*chars.length/maxW))
-  var cols = atlasW / step
+  var cols = Math.floor(atlasW / step)
   if (chars.length > maxChars) {
     console.warn('gl-scatter2d-fancy: number of characters is more than maximum texture size. Try reducing it.')
   }
   this.charCanvas = atlas({
     canvas: this.charCanvas,
     family: 'sans-serif',
-    size: size,
+    size: charSize,
     shape: [atlasW, atlasH],
     step: [step, step],
     chars: chars
@@ -326,7 +328,8 @@ proto.update = function(options) {
     v_position[4 * i + 2]  = x - v_position[4 * i]
     v_position[4 * i + 3]  = y - v_position[4 * i + 1]
 
-    v_sizeWidth[2 * i]     = s
+    //size is doubled bc character SDF is twice less than character step
+    v_sizeWidth[2 * i]     = s*2
     v_sizeWidth[2 * i + 1] = w
     v_ids[i]               = id
 
