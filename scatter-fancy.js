@@ -124,7 +124,6 @@ var proto = GLScatterFancy.prototype
     shader.bind()
 
     if(pick) {
-
       this.pickOffset = offset
 
       for (var i = 0; i < 4; ++i) {
@@ -138,7 +137,7 @@ var proto = GLScatterFancy.prototype
 
     } else {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-      gl.blendColor(1,1,1,1);
+      gl.blendColor(0,0,0,1);
       gl.enable(gl.BLEND)
 
       this.colorBuffer.bind()
@@ -167,15 +166,13 @@ var proto = GLScatterFancy.prototype
     shader.uniforms.scaleLo     = SCALE_LO
     shader.uniforms.translateHi = TRANSLATE_HI
     shader.uniforms.translateLo = TRANSLATE_LO
-    //FIXME: this may be an issue for changed viewbox, test it
-    //FIXME: make sure we can't do the same with PIXEL_SCALE or something
     shader.uniforms.viewBox = plot.viewBox
 
     var scales = this.scales
 
     for(var scaleNum = scales.length - 1; scaleNum >= 0; scaleNum--) {
         var lod = scales[scaleNum]
-        if(lod.pixelSize < pixelSize * 1.5 && scaleNum > 1) {
+        if(lod.pixelSize < pixelSize * 1.7 && scaleNum > 1) {
           continue
         }
 

@@ -18,8 +18,8 @@ void main() {
 	float dist = texture2D(chars, texCoord).r;
 
 	//max-distance alpha
-	// if (dist == 0.)
-	// 	discard;
+	if (dist == 0.)
+		discard;
 
 	float dif = 5. * borderWidth / pointSize;
 	float borderLevel = .735 - dif * 1.;
