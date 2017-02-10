@@ -67,6 +67,8 @@ var proto = GLScatterFancy.prototype
 
   function calcScales() {
     var plot       = this.plot
+
+    //bounds are positions range bottom-left top-right
     var bounds     = this.bounds
     var viewBox    = plot.viewBox
     var dataBox    = plot.dataBox
@@ -160,6 +162,7 @@ var proto = GLScatterFancy.prototype
     shader.attributes.positionLo.pointer(gl.FLOAT, false, 16, 8)
 
     shader.uniforms.pixelScale  = PIXEL_SCALE
+    shader.uniforms.pixelRatio  = plot.pixelRatio
     shader.uniforms.scaleHi     = SCALE_HI
     shader.uniforms.scaleLo     = SCALE_LO
     shader.uniforms.translateHi = TRANSLATE_HI

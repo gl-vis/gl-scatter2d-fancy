@@ -5,7 +5,7 @@
 var fit = require('canvas-fit')
 var mouseWheel = require('mouse-wheel')
 var mouseChange = require('mouse-change')
-// var createScatter = require('gl-scatter2d-fancy')
+// var createScatter = require('../../plotly.js/node_modules/gl-scatter2d-fancy')
 var createScatter = require('../')
 var createSelectBox = require('gl-select-box')
 var createSpikes = require('gl-spikes2d')
@@ -49,7 +49,7 @@ function setup (options) {
     title:          'gl-scatter2d-fancy',
     ticks:          [ makeTicks(-20,20), makeTicks(-20,20) ],
     labels:         ['x', 'y'],
-    pixelRatio:     +window.devicePixelRatio,
+    pixelRatio:     2,
     tickMarkWidth:  [1,1,1,1],
     tickMarkLength: [3,3,3,3]
   })

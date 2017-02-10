@@ -9,6 +9,7 @@ attribute vec2 char, color;
 //this is 64-bit form of scale and translate
 uniform vec2 scaleHi, scaleLo, translateHi, translateLo;
 uniform vec2 pixelScale;
+uniform float pixelRatio;
 uniform vec4 viewBox;
 uniform sampler2D palette;
 
@@ -25,8 +26,8 @@ void main() {
   charColor = texture2D(palette, vec2(color.x / 255., 0));
   borderColor = texture2D(palette, vec2(color.y / 255., 0));
 
-  gl_PointSize = size;
-  pointSize = size;
+  gl_PointSize = size * pixelRatio;
+  pointSize = size * pixelRatio;
 
   charOffset = char;
   borderWidth = border;
