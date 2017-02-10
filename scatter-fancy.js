@@ -75,7 +75,6 @@ var proto = GLScatterFancy.prototype
     var viewBox    = plot.viewBox
     var dataBox    = plot.dataBox
     var pixelRatio = plot.pixelRatio
-    var size       = this.size
 
     var boundX = bounds[2] - bounds[0]
     var boundY = bounds[3] - bounds[1]
@@ -223,7 +222,6 @@ proto.update = function(options) {
   var sizes         = options.sizes        || []
   var borderWidths  = options.borderWidths || []
   var borderColors  = options.borderColors || []
-  var i, j
   var gl = this.plot.gl
 
   this.points = positions
@@ -252,7 +250,6 @@ proto.update = function(options) {
   var v_color     = pool.mallocUint8(2 * pointCount)
   var v_ids       = pool.mallocUint32(pointCount)
   var v_chars     = pool.mallocUint8(2 * pointCount)
-  var ptr = 0
 
   //aggregate colors
   var paletteIds = {}, colorIds = [], paletteColors = [], bColorIds = []
@@ -319,7 +316,7 @@ proto.update = function(options) {
   })
 
   //collect buffers data
-  for(i = 0; i < pointCount; ++i) {
+  for(var i = 0; i < pointCount; ++i) {
     var id = packedId[i]
     var x = sx * (positions[2 * id]     - tx)
     var y = sy * (positions[2 * id + 1] - ty)
