@@ -18,12 +18,12 @@ void main() {
 	float dist = texture2D(chars, texCoord).r;
 
 	//max-distance alpha
-	if (dist == 0.)
+	if (dist < 1e-2)
 		discard;
 
 	float dif = 5. * borderWidth / pointSize;
-	float borderLevel = .735 - dif * 1.;
-	float charLevel = .735 + dif * 0.;
+	float borderLevel = .735 - dif * .8;
+	float charLevel = .735 + dif * .2;
 	float gamma = .005 * charsStep / pointSize;
 
 	float borderAmt = smoothstep(borderLevel - gamma, borderLevel + gamma, dist);

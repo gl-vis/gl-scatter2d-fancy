@@ -142,7 +142,7 @@ var proto = GLScatterFancy.prototype
       shader.attributes.id.pointer(gl.UNSIGNED_BYTE, false)
 
     } else {
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+      gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.blendColor(0,0,0,1);
       gl.enable(gl.BLEND)
 
