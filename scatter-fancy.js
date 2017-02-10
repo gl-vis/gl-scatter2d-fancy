@@ -165,7 +165,6 @@ var proto = GLScatterFancy.prototype
     shader.attributes.positionHi.pointer(gl.FLOAT, false, 16, 0)
     shader.attributes.positionLo.pointer(gl.FLOAT, false, 16, 8)
 
-    shader.uniforms.pixelScale  = PIXEL_SCALE
     shader.uniforms.pixelRatio  = plot.pixelRatio
     shader.uniforms.scaleHi     = SCALE_HI
     shader.uniforms.scaleLo     = SCALE_LO

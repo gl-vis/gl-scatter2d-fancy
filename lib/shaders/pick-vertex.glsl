@@ -3,7 +3,7 @@ precision highp float;
 attribute vec2 positionHi, positionLo;
 attribute vec4 id;
 
-uniform vec2 scaleHi, scaleLo, translateHi, translateLo, pixelScale;
+uniform vec2 scaleHi, scaleLo, translateHi, translateLo;
 uniform vec4 pickOffset;
 
 varying vec4 fragColor;
@@ -29,6 +29,5 @@ void main() {
   gl_Position = computePosition(
     positionHi, positionLo,
     scaleHi, scaleLo,
-    translateHi, translateLo,
-    pixelScale, vec2(0));
+    translateHi, translateLo);
 }
