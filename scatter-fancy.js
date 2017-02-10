@@ -43,6 +43,7 @@ function GLScatterFancy(
 
   //lod scales
   this.scales         = []
+  this.xCoords        = []
 
   //font atlas texture
   this.charCanvas     = document.createElement('canvas')
@@ -63,7 +64,8 @@ var proto = GLScatterFancy.prototype
 
   var PIXEL_SCALE = [0, 0]
 
-  var pixelSize
+  var pixelSize, xStart, xEnd
+
 
   function calcScales() {
     var plot       = this.plot
@@ -73,6 +75,7 @@ var proto = GLScatterFancy.prototype
     var viewBox    = plot.viewBox
     var dataBox    = plot.dataBox
     var pixelRatio = plot.pixelRatio
+    var size       = this.size
 
     var boundX = bounds[2] - bounds[0]
     var boundY = bounds[3] - bounds[1]
@@ -102,6 +105,9 @@ var proto = GLScatterFancy.prototype
     //FIXME: why twice?
     PIXEL_SCALE[0] = 2 * pixelRatio / screenX
     PIXEL_SCALE[1] = 2 * pixelRatio / screenY
+
+    xStart = dataBox[0]
+    xEnd = dataBox[2]
   }
 
   var PICK_OFFSET = [0, 0, 0, 0]
@@ -179,10 +185,8 @@ var proto = GLScatterFancy.prototype
         var intervalStart = lod.offset
         var intervalEnd   = lod.count + intervalStart
 
-        var startOffset = intervalStart
-        var endOffset = intervalEnd || pointCount
-
-        //TODO: we can shave off even more by slicing by left/right limits, see gl-scatter2d. Points are arranged by x coordinate so just calc bounds
+        var startOffset = search.ge(this.xCoords, xStart, intervalStart, intervalEnd - 1)
+        var endOffset   = search.lt(this.xCoords, xEnd, startOffset, intervalEnd - 1) + 1
 
         if (endOffset > startOffset) {
           gl.drawArrays(gl.POINTS, startOffset, (endOffset - startOffset))
@@ -327,6 +331,8 @@ proto.update = function(options) {
     v_position[4 * i + 1]  = y
     v_position[4 * i + 2]  = x - v_position[4 * i]
     v_position[4 * i + 3]  = y - v_position[4 * i + 1]
+
+    this.xCoords[i] = x
 
     //size is doubled bc character SDF is twice less than character step
     v_sizeWidth[2 * i]     = s*2
