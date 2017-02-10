@@ -22,8 +22,8 @@ void main() {
 		discard;
 
 	float dif = 5. * borderWidth / pointSize;
-	float borderLevel = .735 - dif * .8;
-	float charLevel = .735 + dif * .2;
+	float borderLevel = .74 - dif * .8;
+	float charLevel = .74 + dif * .2;
 	float gamma = .005 * charsStep / pointSize;
 
 	float borderAmt = smoothstep(borderLevel - gamma, borderLevel + gamma, dist);
