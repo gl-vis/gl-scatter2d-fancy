@@ -2,7 +2,7 @@ precision highp float;
 
 uniform sampler2D chars;
 uniform vec2 charsShape;
-uniform float charsStep;
+uniform float charsStep, pixelRatio;
 
 varying vec4 borderColor;
 varying vec4 charColor;
@@ -21,9 +21,9 @@ void main() {
 	if (dist < 1e-2)
 		discard;
 
-	float dif = 5. * borderWidth / pointSize;
-	float borderLevel = .74 - dif * .8;
-	float charLevel = .74 + dif * .2;
+	float dif = 5. * pixelRatio * borderWidth / pointSize;
+	float borderLevel = .74 - dif * .5;
+	float charLevel = .74 + dif * .5;
 	float gamma = .005 * charsStep / pointSize;
 
 	float borderAmt = smoothstep(borderLevel - gamma, borderLevel + gamma, dist);
