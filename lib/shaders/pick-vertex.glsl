@@ -2,9 +2,11 @@ precision highp float;
 
 attribute vec2 positionHi, positionLo;
 attribute vec4 id;
+attribute float size;
 
 uniform vec2 scaleHi, scaleLo, translateHi, translateLo;
 uniform vec4 pickOffset;
+uniform float pixelRatio;
 
 varying vec4 fragColor;
 
@@ -24,7 +26,7 @@ void main() {
 
   fragColor = fragId / 255.0;
 
-  gl_PointSize = 1.;
+  gl_PointSize = size * .3 * pixelRatio;
 
   gl_Position = computePosition(
     positionHi, positionLo,

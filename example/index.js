@@ -49,7 +49,7 @@ function setup (options) {
     title:          'gl-scatter2d-fancy',
     ticks:          [ makeTicks(-20,20), makeTicks(-20,20) ],
     labels:         ['x', 'y'],
-    pixelRatio:     2,
+    pixelRatio:     1,
     tickMarkWidth:  [1,1,1,1],
     tickMarkLength: [3,3,3,3]
   })

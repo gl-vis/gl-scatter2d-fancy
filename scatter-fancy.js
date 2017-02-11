@@ -155,11 +155,11 @@ var proto = GLScatterFancy.prototype
       shader.uniforms.charsShape = [this.charCanvas.width, this.charCanvas.height]
       shader.uniforms.charsStep = this.charStep
       shader.uniforms.palette = this.paletteTexture.bind(1)
-
-      this.sizeBuffer.bind()
-      shader.attributes.size.pointer(gl.FLOAT, false, 8, 0)
-      shader.attributes.border.pointer(gl.FLOAT, false, 8, 4)
     }
+
+    this.sizeBuffer.bind()
+    shader.attributes.size.pointer(gl.FLOAT, false, 8, 0)
+    !pick && shader.attributes.border.pointer(gl.FLOAT, false, 8, 4)
 
     this.positionBuffer.bind()
     shader.attributes.positionHi.pointer(gl.FLOAT, false, 16, 0)
