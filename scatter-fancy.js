@@ -159,7 +159,7 @@ var proto = GLScatterFancy.prototype
 
     this.sizeBuffer.bind()
     shader.attributes.size.pointer(gl.FLOAT, false, 8, 0)
-    !pick && shader.attributes.border.pointer(gl.FLOAT, false, 8, 4)
+    if (!pick) shader.attributes.border.pointer(gl.FLOAT, false, 8, 4)
 
     this.positionBuffer.bind()
     shader.attributes.positionHi.pointer(gl.FLOAT, false, 16, 0)
@@ -191,7 +191,11 @@ var proto = GLScatterFancy.prototype
         }
     }
 
-    if(pick) return offset + this.pointCount
+    if (pick) return offset + this.pointCount
+    else {
+      // gl.blendFunc(gl.ONE, gl.ZERO);
+      gl.disable(gl.BLEND)
+    }
   }
 })()
 
@@ -236,7 +240,13 @@ proto.update = function(options) {
   this.pointCount = pointCount
 
   //FIXME: figure out what these bounds are about or get rid of them
-  var bounds = this.bounds = [0, 0, 1, 1]
+  var bounds = this.bounds = [Infinity, Infinity, -Infinity, -Infinity]
+  for (var i = 0; i < pointCount; i++) {
+    bounds[0] = Math.min(bounds[0], positions[2 * i])
+    bounds[1] = Math.min(bounds[1], positions[2 * i + 1])
+    bounds[2] = Math.max(bounds[2], positions[2 * i])
+    bounds[3] = Math.max(bounds[3], positions[2 * i + 1])
+  }
 
   var sx = 1 / (bounds[2] - bounds[0])
   var sy = 1 / (bounds[3] - bounds[1])
@@ -292,7 +302,7 @@ proto.update = function(options) {
   for (var i = 0, l = sizes.length; i < l; ++i) {
     if (sizes[i] > maxSize) maxSize = sizes[i]
   }
-  this.charStep = clamp(Math.ceil(maxSize*5), 128, 512)
+  this.charStep = clamp(Math.ceil(maxSize*6), 128, 512)
 
   var chars = Object.keys(glyphChars)
   var step = this.charStep
