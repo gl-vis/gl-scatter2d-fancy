@@ -187,8 +187,7 @@ var proto = GLScatterFancy.prototype
         var endOffset   = search.lt(this.xCoords, xEnd, startOffset, intervalEnd - 1) + 1
 
         if (endOffset > startOffset) {
-          // gl.drawArrays(gl.POINTS, startOffset, (endOffset - startOffset))
-          gl.drawArrays(gl.POINTS, intervalStart, (intervalEnd - intervalStart))
+          gl.drawArrays(gl.POINTS, startOffset, (endOffset - startOffset))
         }
     }
 
