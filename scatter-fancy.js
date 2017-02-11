@@ -176,7 +176,7 @@ var proto = GLScatterFancy.prototype
 
     for(var scaleNum = scales.length - 1; scaleNum >= 0; scaleNum--) {
         var lod = scales[scaleNum]
-        if(lod.pixelSize < pixelSize * 1.7 && scaleNum > 1) {
+        if(lod.pixelSize && (lod.pixelSize < pixelSize * 1.25) && scaleNum > 1) {
           continue
         }
 
@@ -187,13 +187,13 @@ var proto = GLScatterFancy.prototype
         var endOffset   = search.lt(this.xCoords, xEnd, startOffset, intervalEnd - 1) + 1
 
         if (endOffset > startOffset) {
-          gl.drawArrays(gl.POINTS, startOffset, (endOffset - startOffset))
+          // gl.drawArrays(gl.POINTS, startOffset, (endOffset - startOffset))
+          gl.drawArrays(gl.POINTS, intervalStart, (intervalEnd - intervalStart))
         }
     }
 
     if (pick) return offset + this.pointCount
     else {
-      // gl.blendFunc(gl.ONE, gl.ZERO);
       gl.disable(gl.BLEND)
     }
   }
