@@ -225,6 +225,8 @@ proto.update = function(options) {
   var borderColors  = options.borderColors || []
   var gl = this.plot.gl
 
+  if (options.charOffset != null) this.charOffset = options.charOffset
+
   this.points = positions
 
   //create packed positions here
