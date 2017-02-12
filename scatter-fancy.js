@@ -34,7 +34,6 @@ function GLScatterFancy(
   this.idBuffer       = idBuffer
   this.charBuffer       = charBuffer
 
-  this.bounds         = [Infinity, Infinity, -Infinity, -Infinity]
   this.pointCount     = 0
   this.pickOffset     = 0
 
@@ -73,21 +72,17 @@ var proto = GLScatterFancy.prototype
   function calcScales() {
     var plot       = this.plot
 
-    //bounds are positions range bottom-left top-right
-    var bounds     = this.bounds
     var viewBox    = plot.viewBox
     var dataBox    = plot.dataBox
     var pixelRatio = plot.pixelRatio
 
-    var boundX = bounds[2] - bounds[0]
-    var boundY = bounds[3] - bounds[1]
     var dataX  = dataBox[2] - dataBox[0]
     var dataY  = dataBox[3] - dataBox[1]
 
-    var scaleX = 2 * boundX / dataX
-    var scaleY = 2 * boundY / dataY
-    var translateX = (bounds[0] - dataBox[0] - 0.5 * dataX) / boundX
-    var translateY = (bounds[1] - dataBox[1] - 0.5 * dataY) / boundY
+    var scaleX = 2 / dataX
+    var scaleY = 2 / dataY
+    var translateX = (- dataBox[0] - 0.5 * dataX)
+    var translateY = (- dataBox[1] - 0.5 * dataY)
 
     SCALE_HI[0] = scaleX
     SCALE_LO[0] = scaleX - SCALE_HI[0]
@@ -238,23 +233,9 @@ proto.update = function(options) {
   var packedW            = pool.mallocFloat32(2 * pointCount)
   var packed             = pool.mallocFloat64(2 * pointCount)
   packed.set(this.points)
-  this.scales = snapPoints(packed, packedId, packedW, this.bounds)
+  this.scales = snapPoints(packed, packedId, packedW)
 
   this.pointCount = pointCount
-
-  //FIXME: figure out what these bounds are about or get rid of them
-  var bounds = this.bounds = [Infinity, Infinity, -Infinity, -Infinity]
-  for (var i = 0; i < pointCount; i++) {
-    bounds[0] = Math.min(bounds[0], positions[2 * i])
-    bounds[1] = Math.min(bounds[1], positions[2 * i + 1])
-    bounds[2] = Math.max(bounds[2], positions[2 * i])
-    bounds[3] = Math.max(bounds[3], positions[2 * i + 1])
-  }
-
-  var sx = 1 / (bounds[2] - bounds[0])
-  var sy = 1 / (bounds[3] - bounds[1])
-  var tx = bounds[0]
-  var ty = bounds[1]
 
   //v_position contains normalized positions to the available range of positions
   var v_position  = pool.mallocFloat32(4 * pointCount)
@@ -330,8 +311,8 @@ proto.update = function(options) {
   //collect buffers data
   for(var i = 0; i < pointCount; ++i) {
     var id = packedId[i]
-    var x = sx * (positions[2 * id]     - tx)
-    var y = sy * (positions[2 * id + 1] - ty)
+    var x = positions[2 * id]
+    var y = positions[2 * id + 1]
     var s = sizes[id]
     var w = borderWidths[id]
 
