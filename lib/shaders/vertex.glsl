@@ -13,7 +13,7 @@ uniform vec4 viewBox;
 uniform sampler2D palette;
 
 varying vec4 charColor, borderColor;
-varying vec2 charOffset;
+varying vec2 charId;
 varying vec2 pointCoord;
 varying float pointSize;
 varying float borderWidth;
@@ -26,7 +26,7 @@ void main() {
   gl_PointSize = size * pixelRatio;
   pointSize = size * pixelRatio;
 
-  charOffset = char;
+  charId = char;
   borderWidth = border;
 
   gl_Position = computePosition(

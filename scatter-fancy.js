@@ -50,6 +50,9 @@ function GLScatterFancy(
   this.charTexture    = createTexture(this.plot.gl, this.charCanvas)
   this.charStep       = 400
 
+  //due to font alignmens some glyphs are off a bit
+  this.charOffset     = .03
+
   //border/char colors texture
   this.paletteTexture   = createTexture(this.plot.gl, [256, 1])
 }
@@ -155,6 +158,7 @@ var proto = GLScatterFancy.prototype
       shader.uniforms.charsShape = [this.charCanvas.width, this.charCanvas.height]
       shader.uniforms.charsStep = this.charStep
       shader.uniforms.palette = this.paletteTexture.bind(1)
+      shader.uniforms.charOffset = this.charOffset
     }
 
     this.sizeBuffer.bind()
