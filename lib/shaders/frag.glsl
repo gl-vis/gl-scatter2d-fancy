@@ -22,7 +22,7 @@ void main() {
 	if (dist < 1e-2)
 		discard;
 
-	float dif = 5. * pixelRatio * borderWidth / pointSize;
+	float dif = 6. * pixelRatio * borderWidth / pointSize;
 	float borderLevel = .74 - dif * .7;
 	float charLevel = .74 + dif * .3;
 	float gamma = .005 * charsStep / pointSize;

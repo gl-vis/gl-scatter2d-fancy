@@ -52,6 +52,9 @@ function GLScatterFancy(
   //due to font alignmens some glyphs are off a bit
   this.charOffset     = .03
 
+  //snapping loses points sorting, so disable snapping on small number of points
+  this.snapThreshold  = 1e4
+
   //border/char colors texture
   this.paletteTexture   = createTexture(this.plot.gl, [256, 1])
 }
@@ -112,8 +115,8 @@ var proto = GLScatterFancy.prototype
   proto.drawPick = function(offset) {
     var pick = offset !== undefined
     var plot = this.plot
-
     var pointCount = this.pointCount
+    var snap = pointCount > this.snapThreshold
 
     if(!pointCount) {
       return offset
@@ -173,24 +176,29 @@ var proto = GLScatterFancy.prototype
 
     var scales = this.scales
 
-    for(var scaleNum = scales.length - 1; scaleNum >= 0; scaleNum--) {
-        var lod = scales[scaleNum]
-        if(lod.pixelSize && (lod.pixelSize < pixelSize * 1.25) && scaleNum > 1) {
-          continue
-        }
+    if (snap) {
+      for (var scaleNum = scales.length - 1; scaleNum >= 0; scaleNum--) {
+          var lod = scales[scaleNum]
+          if(lod.pixelSize && (lod.pixelSize < pixelSize * 1.25) && scaleNum > 1) {
+            continue
+          }
 
-        var intervalStart = lod.offset
-        var intervalEnd   = lod.count + intervalStart
+          var intervalStart = lod.offset
+          var intervalEnd   = lod.count + intervalStart
 
-        var startOffset = search.ge(this.xCoords, xStart, intervalStart, intervalEnd - 1)
-        var endOffset   = search.lt(this.xCoords, xEnd, startOffset, intervalEnd - 1) + 1
+          var startOffset = search.ge(this.xCoords, xStart, intervalStart, intervalEnd - 1)
+          var endOffset   = search.lt(this.xCoords, xEnd, startOffset, intervalEnd - 1) + 1
 
-        if (endOffset > startOffset) {
-          gl.drawArrays(gl.POINTS, startOffset, (endOffset - startOffset))
-        }
+          if (endOffset > startOffset) {
+            gl.drawArrays(gl.POINTS, startOffset, (endOffset - startOffset))
+          }
+      }
+    }
+    else {
+      gl.drawArrays(gl.POINTS, 0, pointCount)
     }
 
-    if (pick) return offset + this.pointCount
+    if (pick) return offset + pointCount
     else {
       gl.disable(gl.BLEND)
     }
@@ -235,9 +243,14 @@ proto.update = function(options) {
   var packedW            = pool.mallocFloat32(2 * pointCount)
   var packed             = pool.mallocFloat64(2 * pointCount)
   packed.set(this.points)
-  this.scales = snapPoints(packed, packedId, packedW)
 
   this.pointCount = pointCount
+
+  var snap = pointCount > this.snapThreshold
+
+  if (snap) {
+    this.scales = snapPoints(packed, packedId, packedW)
+  }
 
   //v_position contains normalized positions to the available range of positions
   var v_position  = pool.mallocFloat32(4 * pointCount)
@@ -312,7 +325,7 @@ proto.update = function(options) {
 
   //collect buffers data
   for(var i = 0; i < pointCount; ++i) {
-    var id = packedId[i]
+    var id = snap ? packedId[i] : i
     var x = positions[2 * id]
     var y = positions[2 * id + 1]
     var s = sizes[id]
@@ -346,6 +359,7 @@ proto.update = function(options) {
     v_chars[2 * i] = charId % cols
   }
 
+  // if (!v_color.length) return
 
   //fill buffes
   this.positionBuffer.update(v_position)
