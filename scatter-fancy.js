@@ -314,14 +314,19 @@ proto.update = function(options) {
   if (chars.length > maxChars) {
     console.warn('gl-scatter2d-fancy: number of characters is more than maximum texture size. Try reducing it.')
   }
-  this.charCanvas = atlas({
-    canvas: this.charCanvas,
-    family: 'sans-serif',
-    size: charSize,
-    shape: [atlasW, atlasH],
-    step: [step, step],
-    chars: chars
-  })
+
+  //do not overupdate atlas
+  if (!this.chars || (this.chars+'' !== chars+'')) {
+    this.charCanvas = atlas({
+      canvas: this.charCanvas,
+      family: 'sans-serif',
+      size: charSize,
+      shape: [atlasW, atlasH],
+      step: [step, step],
+      chars: chars
+    })
+    this.chars = chars
+  }
 
   //collect buffers data
   for(var i = 0; i < pointCount; ++i) {
