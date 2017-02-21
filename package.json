@@ -15,7 +15,10 @@
     "plot"
   ],
   "author": "Mikola Lysenko",
-  "contributors": ["Étienne Tétreault-Pinard", "Robert Monfera"],
+  "contributors": [
+    "Étienne Tétreault-Pinard",
+    "Robert Monfera"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/gl-vis/gl-scatter2d-fancy/issues"
@@ -33,5 +36,14 @@
     "text-cache": "^4.0.0",
     "typedarray-pool": "^1.1.0",
     "vectorize-text": "^3.0.2"
+  },
+  "devDependencies": {
+    "canvas-fit": "^1.5.0",
+    "fps-indicator": "^1.0.2",
+    "gl-plot2d": "^1.2.0",
+    "gl-select-box": "^1.0.1",
+    "gl-spikes2d": "^1.0.1",
+    "mouse-change": "^1.4.0",
+    "mouse-wheel": "^1.2.0"
   }
 }
